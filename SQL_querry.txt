@@ -1,0 +1,80 @@
+-- 1) How much amount the companies spent on R & D ?
+
+SELECT Company
+	, SUM("R&D_Spending_USD_Mn") AS total_gasto
+	FROM ai_financial_market_daily_realistic_synthetic afmdrs
+	GROUP BY Company;
+
+-- 2) Revenue Earned by the companies
+
+SELECT Company
+	, STRFTIME('%Y', Date) AS ano
+	, printf('$%,.2f', SUM(AI_Revenue_USD_Mn * 1000000)) AS total_receita
+	FROM ai_financial_market_daily_realistic_synthetic afmdrs
+	GROUP BY Company, STRFTIME('%Y', Date)
+	ORDER BY Company, ano;
+
+-- 3) Date-wise Impact on the Stock
+
+SELECT Company
+	, STRFTIME('%Y', Date) AS ano
+	, Event
+	, "Stock_Impact_%"
+	FROM ai_financial_market_daily_realistic_synthetic afmdrs
+	GROUP BY Company, STRFTIME('%Y', Date);
+
+-- 4) Events when Maximum Stock Impact was observed
+
+SELECT Event
+	, MAX("Stock_Impact_%") AS max_stock_impact
+	, Date
+	, Company
+FROM 
+    ai_financial_market_daily_realistic_synthetic
+GROUP BY Event, Company, Date
+ORDER BY max_stock_impact DESC
+LIMIT 100;
+
+-- 5) AI Revenue Growth of the companies
+
+WITH Revenue_Comparison AS (
+    SELECT Company
+    , STRFTIME('%Y', Date) AS ano
+    , FIRST_VALUE("AI_Revenue_USD_Mn") OVER (PARTITION BY Company, STRFTIME('%Y', Date) ORDER BY Date) AS first_day_revenue
+    , LAST_VALUE("AI_Revenue_USD_Mn") OVER (PARTITION BY Company, STRFTIME('%Y', Date) ORDER BY Date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_day_revenue
+    FROM ai_financial_market_daily_realistic_synthetic
+)
+	SELECT 
+    	Company
+    	, ano
+    	, ((last_day_revenue - first_day_revenue) / first_day_revenue) * 100 AS "AI_Revenue_Growth_Percentage"
+	FROM Revenue_Comparison
+	GROUP BY Company, ano;
+
+-- 6) Correlation between the columns
+
+SELECT Company
+	, STRFTIME('%Y', Date) AS ano
+	, AVG("AI_Revenue_Growth_%") AS avg_growth
+	, AVG("Stock_Impact_%") AS avg_stock_impact
+FROM 
+    ai_financial_market_daily_realistic_synthetic afmdrs
+GROUP BY 
+    Company, STRFTIME('%Y', Date);
+   
+-- 7) Expenditure vs Revenue year-by-year
+
+SELECT Company
+    , STRFTIME('%Y', Date) AS ano
+    , SUM("R&D_Spending_USD_Mn") AS total_gasto
+    , SUM("AI_Revenue_USD_Mn") AS total_receita_IA
+    , SUM("AI_Revenue_USD_Mn") - SUM("R&D_Spending_USD_Mn") AS gastos_menos_despesas
+    , (SUM("AI_Revenue_USD_Mn") / SUM("R&D_Spending_USD_Mn")) * 100 AS gastos_menos_razao
+FROM 
+    ai_financial_market_daily_realistic_synthetic
+GROUP BY 
+    Company, STRFTIME('%Y', Date)                  
+ORDER BY 
+    ano;
+
+
