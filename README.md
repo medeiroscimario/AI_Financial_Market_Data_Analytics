@@ -4,4 +4,8 @@
 
 - Dataset Link: https://www.kaggle.com/datasets/rohitgrewal/ai-financial-and-market-data/data
 
+<p align="center">
+  <img src="dataset-cover.png"/>
+</p>
+
 ### SQL queries were created to demonstrate knowledge of the language, along with dashboards built in Power BI.
